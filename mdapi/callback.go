@@ -7,6 +7,8 @@ package mdapi
 #include "MdBridge.h"
 #include "stdbool.h"
 #include "ThostFtdcUserApiStruct.h"
+#include "string.h"
+typedef char TThostFtdcBrokerIDType[11];
 void OnMarketDataMdgo_cgo(struct CThostFtdcDepthMarketDataField *pMktgo);
 
 void OnConnectedMdgo_cgo();
@@ -35,6 +37,34 @@ import "C"
 import "fmt"
 import "unsafe"
 
+type OnMkt C.OnMarketDataMd
+
+type CThostFtdcReqUserLoginFieldgo struct {
+	///交易日
+	TradingDay string
+	///经纪公司代码
+	BrokerID string
+	///用户代码
+	UserID string
+	///密码
+	Password string
+	///用户端产品信息
+	UserProductInfo string
+	///接口端产品信息
+	InterfaceProductInfo string
+	///协议信息
+	ProtocolInfo string
+	///Mac地址
+	MacAddress string
+	///动态密码
+	OneTimePassword string
+	///终端IP地址
+	ClientIPAddress string
+	///登录备注
+	LoginRemark string
+	///终端IP端口
+	ClientIPPort int
+}
 
 //export OnMarketDataMdgo
 func OnMarketDataMdgo(pMkt *C.struct_CThostFtdcDepthMarketDataField) {
@@ -80,9 +110,25 @@ func (x *Mdapi) JoinMdgo() {
 	C.JoinMd(x.mdapi)
 }
 
-func (x *Mdapi) LoginMdgo(nRequestID int) int{
-	pReqUserLoginField:=C.struct_CThostFtdcReqUserLoginField{}
-	result:=C.LoginMd(x.mdapi, &pReqUserLoginField, C.int(nRequestID), (C.OnLogin)(unsafe.Pointer(C.OnLoginMdgo_cgo)))
+func (x *Mdapi) LoginMdgo(pLogin CThostFtdcReqUserLoginFieldgo, nRequestID int) int {
+	var cLogin C.struct_CThostFtdcReqUserLoginField
+
+	C.strcpy(&cLogin.TradingDay[0], C.CString(pLogin.TradingDay))
+	C.strcpy(&cLogin.BrokerID[0], C.CString(pLogin.BrokerID))
+	C.strcpy(&cLogin.UserID[0], C.CString(pLogin.UserID))
+	C.strcpy(&cLogin.Password[0], C.CString(pLogin.Password))
+	C.strcpy(&cLogin.UserProductInfo[0], C.CString(pLogin.UserProductInfo))
+	C.strcpy(&cLogin.InterfaceProductInfo[0], C.CString(pLogin.InterfaceProductInfo))
+	C.strcpy(&cLogin.ProtocolInfo[0], C.CString(pLogin.ProtocolInfo))
+	C.strcpy(&cLogin.MacAddress[0], C.CString(pLogin.MacAddress))
+	C.strcpy(&cLogin.OneTimePassword[0], C.CString(pLogin.OneTimePassword))
+	C.strcpy(&cLogin.ClientIPAddress[0], C.CString(pLogin.ClientIPAddress))
+	C.strcpy(&cLogin.LoginRemark[0], C.CString(pLogin.LoginRemark))
+	cLogin.ClientIPPort = C.int(pLogin.ClientIPPort)
+
+	//pReqUserLoginField := C.struct_CThostFtdcReqUserLoginField{}
+
+	result := C.LoginMd(x.mdapi, &cLogin, C.int(nRequestID), (C.OnLogin)(unsafe.Pointer(C.OnLoginMdgo_cgo)))
 	return int(result)
 }
 
@@ -131,8 +177,9 @@ func (x *Mdapi) UnSubscribeForQuoteRspMdgo(symbol []string) int {
 	return int(result)
 }
 
-func (x *Mdapi) RegMarketDataMdgo() {
-	C.regMarketDataMd(x.mdapi, (C.OnMarketDataMd)(unsafe.Pointer(C.OnMarketDataMdgo_cgo)))
+func (x *Mdapi) RegMarketDataMdgo(mktgo OnMkt) {
+	//C.regMarketDataMd(x.mdapi, (C.OnMarketDataMd)(unsafe.Pointer(C.OnMarketDataMdgo_cgo)))
+	C.regMarketDataMd(x.mdapi, (C.OnMarketDataMd)(mktgo))
 }
 
 func (x *Mdapi) RegRTForQuoteRspMdgo() {
